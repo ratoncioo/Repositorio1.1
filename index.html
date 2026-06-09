@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Snake Arcade Pro</title>
+    <title>Snake Arcade Pro (Cloud)</title>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
         body {
@@ -17,38 +20,57 @@
             color: #00ff41;
             overflow: hidden;
         }
-        #game-wrapper { position: relative; border: 4px solid #00ff41; background: #000; box-shadow: 0 0 20px #00ff41; }
+        
+        #game-wrapper { 
+            position: relative; 
+            border: 4px solid #00ff41; 
+            background: #000; 
+            box-shadow: 0 0 20px #00ff41; 
+        }
+        
         canvas { display: block; background: #000; }
         
-        /* Overlays */
+        /* Capas sobre el juego (Menús) */
         .overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85); display: flex; flex-direction: column;
+            background: rgba(0,0,0,0.92); display: flex; flex-direction: column;
             align-items: center; justify-content: center; z-index: 10; text-align: center;
         }
-        h1 { font-size: 40px; margin-bottom: 20px; text-shadow: 0 0 10px #00ff41; }
+        
+        h1 { font-size: 36px; margin-bottom: 20px; text-shadow: 0 0 10px #00ff41; }
+        
         .btn {
             background: transparent; border: 2px solid #00ff41; color: #00ff41;
-            padding: 10px 30px; font-size: 20px; cursor: pointer; transition: 0.3s;
-            text-transform: uppercase; font-weight: bold;
+            padding: 10px 20px; font-size: 18px; cursor: pointer; transition: 0.3s;
+            text-transform: uppercase; font-weight: bold; margin-top: 10px;
         }
         .btn:hover { background: #00ff41; color: #000; }
+        .btn:disabled { border-color: #333; color: #333; cursor: not-allowed; }
 
-        /* Name Entry */
-        .name-entry { display: flex; gap: 10px; margin: 20px 0; }
+        /* Ingreso de Nombre */
+        .name-entry { display: flex; gap: 15px; margin: 20px 0; }
         .letter-box {
-            width: 50px; height: 60px; border-bottom: 4px solid #00ff41;
-            font-size: 40px; display: flex; align-items: center; justify-content: center;
+            width: 40px; height: 50px; border-bottom: 4px solid #00ff41;
+            font-size: 36px; display: flex; align-items: center; justify-content: center;
         }
 
-        /* Controls */
+        /* Tabla de Puntuaciones */
+        #leaderboard-list {
+            list-style: none; margin: 20px 0; width: 80%; text-align: left;
+        }
+        #leaderboard-list li {
+            display: flex; justify-content: space-between; font-size: 20px; margin-bottom: 10px;
+            border-bottom: 1px dashed #00ff41; padding-bottom: 5px;
+        }
+
+        /* Controles Táctiles */
         #controls { display: grid; grid-template-columns: repeat(3, 60px); gap: 10px; margin-top: 20px; }
         .ctrl-btn {
             width: 60px; height: 60px; background: #111; border: 2px solid #333;
             color: #fff; display: flex; align-items: center; justify-content: center;
-            font-size: 24px; border-radius: 50%; cursor: pointer;
+            font-size: 24px; border-radius: 50%; cursor: pointer; touch-action: manipulation;
         }
-        .ctrl-btn:active { background: #00ff41; color: #000; }
+        .ctrl-btn:active { background: #00ff41; color: #000; border-color: #00ff41; }
         #up { grid-column: 2; }
         #left { grid-column: 1; }
         #right { grid-column: 3; }
@@ -64,93 +86,149 @@
 
         <div id="start-screen" class="overlay">
             <h1>SNAKE ARCADE</h1>
-            <button class="btn" onclick="startGame()">PRESS START</button>
+            <button class="btn" onclick="showLeaderboard()">VER RANKING GLOBAL</button>
+            <button class="btn" onclick="startGame()">INSERT COIN (START)</button>
         </div>
 
         <div id="over-screen" class="overlay" style="display: none;">
-            <h1 style="color: #ff3131;">GAME OVER</h1>
-            <p>TU PUNTUACIÓN: <span id="final-score">0</span></p>
+            <h1 style="color: #ff3131; text-shadow: 0 0 10px #ff3131;">GAME OVER</h1>
+            <p>PUNTUACIÓN: <span id="final-score">0</span></p>
             <div class="name-entry">
                 <div class="letter-box" id="L0">A</div>
                 <div class="letter-box" id="L1">A</div>
                 <div class="letter-box" id="L2">A</div>
             </div>
-            <p style="font-size: 12px;">USA FLECHAS PARA CAMBIAR LETRAS</p>
-            <button class="btn" style="margin-top:20px" onclick="location.reload()">REINTENTAR</button>
+            <p style="font-size: 12px; margin-bottom: 10px;">USA LAS FLECHAS PARA CAMBIAR LETRAS</p>
+            <button class="btn" id="save-btn" onclick="saveScore()">GUARDAR EN LA NUBE</button>
+        </div>
+
+        <div id="leaderboard-screen" class="overlay" style="display: none;">
+            <h1>TOP 5 GLOBAL</h1>
+            <ul id="leaderboard-list">
+                </ul>
+            <button class="btn" onclick="resetToStart()">VOLVER</button>
         </div>
     </div>
 
     <div id="controls">
-        <div class="ctrl-btn" id="up">↑</div>
-        <div class="ctrl-btn" id="left">←</div>
-        <div class="ctrl-btn" id="right">→</div>
-        <div class="ctrl-btn" id="down">↓</div>
+        <div class="ctrl-btn" id="up" onmousedown="handleTouch('UP')" ontouchstart="handleTouch('UP')">↑</div>
+        <div class="ctrl-btn" id="left" onmousedown="handleTouch('LEFT')" ontouchstart="handleTouch('LEFT')">←</div>
+        <div class="ctrl-btn" id="right" onmousedown="handleTouch('RIGHT')" ontouchstart="handleTouch('RIGHT')">→</div>
+        <div class="ctrl-btn" id="down" onmousedown="handleTouch('DOWN')" ontouchstart="handleTouch('DOWN')">↓</div>
     </div>
 
     <script>
+        // =========================================================================
+        // ⚠️ CONFIGURACIÓN DE FIREBASE (REEMPLAZA CON TUS PROPIOS DATOS)
+        // =========================================================================
+        const firebaseConfig = {
+            apiKey: "TU_API_KEY_AQUÍ",
+            authDomain: "TU_PROYECTO.firebaseapp.com",
+            projectId: "TU_PROYECTO_ID",
+            storageBucket: "TU_PROYECTO.appspot.com",
+            messagingSenderId: "TU_SENDER_ID",
+            appId: "TU_APP_ID"
+        };
+
+        // Inicializar Firebase y Firestore
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        // =========================================================================
+
         const canvas = document.getElementById("game");
         const ctx = canvas.getContext("2d");
         const box = 20;
-        let snake, food, score, game, d;
+        
+        // Ajuste para móviles
+        const size = Math.min(window.innerWidth - 30, 400);
+        canvas.width = size - (size % box);
+        canvas.height = size - (size % box);
+
+        let snake, food, score, gameLoop, d;
         let isOver = false;
+        
+        // Variables de Arcade Name Entry
         let charIndex = 0;
-        let initials = [65, 65, 65]; // A, A, A
+        let initials = [65, 65, 65]; // Códigos ASCII para A, A, A
 
         function initVars() {
-            snake = [{x: 9 * box, y: 10 * box}];
-            food = { x: Math.floor(Math.random()*19+1)*box, y: Math.floor(Math.random()*19+1)*box };
+            snake = [{x: Math.floor((canvas.width/box)/2) * box, y: Math.floor((canvas.height/box)/2) * box}];
             score = 0;
             d = "RIGHT";
             isOver = false;
+            charIndex = 0;
+            initials = [65, 65, 65];
             document.getElementById("val").innerText = "000";
+            document.getElementById("save-btn").disabled = false;
+            updateNameUI();
+            spawnFood();
         }
 
-        document.addEventListener("keydown", direction);
-        function direction(event) {
-            if(isOver) {
-                handleNameEntry(event.keyCode);
+        function spawnFood() {
+            let cols = canvas.width / box;
+            let rows = canvas.height / box;
+            food = {
+                x: Math.floor(Math.random() * cols) * box,
+                y: Math.floor(Math.random() * rows) * box
+            };
+        }
+
+        // --- SISTEMA DE CONTROLES UNIFICADO (PC y Móvil Bugfix) ---
+        document.addEventListener("keydown", (e) => {
+            if(isOver && document.getElementById("over-screen").style.display !== "none") {
+                handleNameEntry(e.keyCode);
                 return;
             }
-            let key = event.keyCode;
-            if((key == 37 || key == 65) && d != "RIGHT") d = "LEFT";
-            else if((key == 38 || key == 87) && d != "DOWN") d = "UP";
-            else if((key == 39 || key == 68) && d != "LEFT") d = "RIGHT";
-            else if((key == 40 || key == 83) && d != "UP") d = "DOWN";
+            if(e.keyCode == 37 || e.keyCode == 65) handleTouch('LEFT');
+            if(e.keyCode == 38 || e.keyCode == 87) handleTouch('UP');
+            if(e.keyCode == 39 || e.keyCode == 68) handleTouch('RIGHT');
+            if(e.keyCode == 40 || e.keyCode == 83) handleTouch('DOWN');
+        });
+
+        function handleTouch(dir) {
+            // Si el juego terminó, las flechas cambian las letras arcade
+            if (isOver && document.getElementById("over-screen").style.display !== "none") {
+                if (dir === 'UP') handleNameEntry(38);
+                if (dir === 'DOWN') handleNameEntry(40);
+                if (dir === 'LEFT') handleNameEntry(37);
+                if (dir === 'RIGHT') handleNameEntry(39);
+                return;
+            }
+
+            // Si estamos jugando, mueven la serpiente
+            if (!isOver) {
+                if (dir === 'UP' && d !== "DOWN") d = "UP";
+                if (dir === 'DOWN' && d !== "UP") d = "DOWN";
+                if (dir === 'LEFT' && d !== "RIGHT") d = "LEFT";
+                if (dir === 'RIGHT' && d !== "LEFT") d = "RIGHT";
+            }
         }
 
-        // Touch Controls
-        const setD = (newD) => { if(!isOver) d = newD; };
-        document.getElementById("up").onclick = () => { if(d!="DOWN") d="UP"; };
-        document.getElementById("down").onclick = () => { if(d!="UP") d="DOWN"; };
-        document.getElementById("left").onclick = () => { if(d!="RIGHT") d="LEFT"; };
-        document.getElementById("right").onclick = () => { if(d!="LEFT") d="RIGHT"; };
-
+        // --- LÓGICA DEL JUEGO ---
         function draw() {
             ctx.fillStyle = "black";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             for(let i = 0; i < snake.length; i++) {
                 ctx.fillStyle = (i == 0) ? "#00ff41" : "#008f11";
-                ctx.fillRect(snake[i].x, snake[i].y, box, box);
-                ctx.strokeStyle = "black";
-                ctx.strokeRect(snake[i].x, snake[i].y, box, box);
+                ctx.fillRect(snake[i].x, snake[i].y, box - 1, box - 1);
             }
 
-            ctx.fillStyle = "red";
-            ctx.fillRect(food.x, food.y, box, box);
+            ctx.fillStyle = "#ff3131";
+            ctx.fillRect(food.x, food.y, box - 1, box - 1);
 
             let snakeX = snake[0].x;
             let snakeY = snake[0].y;
 
-            if( d == "LEFT") snakeX -= box;
-            if( d == "UP") snakeY -= box;
-            if( d == "RIGHT") snakeX += box;
-            if( d == "DOWN") snakeY += box;
+            if(d == "LEFT") snakeX -= box;
+            if(d == "UP") snakeY -= box;
+            if(d == "RIGHT") snakeX += box;
+            if(d == "DOWN") snakeY += box;
 
             if(snakeX == food.x && snakeY == food.y) {
-                score++;
+                score += 10;
                 document.getElementById("val").innerText = score.toString().padStart(3, '0');
-                food = { x: Math.floor(Math.random()*19+1)*box, y: Math.floor(Math.random()*19+1)*box };
+                spawnFood();
             } else {
                 snake.pop();
             }
@@ -174,25 +252,29 @@
 
         function startGame() {
             document.getElementById("start-screen").style.display = "none";
+            document.getElementById("leaderboard-screen").style.display = "none";
+            document.getElementById("over-screen").style.display = "none";
             initVars();
-            game = setInterval(draw, 100);
+            clearInterval(gameLoop);
+            gameLoop = setInterval(draw, 120);
         }
 
         function gameOver() {
-            clearInterval(game);
+            clearInterval(gameLoop);
             isOver = true;
-            document.getElementById("final-score").innerText = score;
+            document.getElementById("final-score").innerText = score.toString().padStart(3, '0');
             document.getElementById("over-screen").style.display = "flex";
         }
 
+        // --- INGRESO DE NOMBRE (ARCADE) ---
         function handleNameEntry(key) {
-            if(key == 38) { // Up
+            if(key == 38) { // Arriba
                 initials[charIndex] = initials[charIndex] == 90 ? 65 : initials[charIndex] + 1;
-            } else if(key == 40) { // Down
+            } else if(key == 40) { // Abajo
                 initials[charIndex] = initials[charIndex] == 65 ? 90 : initials[charIndex] - 1;
-            } else if(key == 39 || key == 13) { // Right or Enter
+            } else if(key == 39) { // Derecha
                 charIndex = (charIndex + 1) % 3;
-            } else if(key == 37) { // Left
+            } else if(key == 37) { // Izquierda
                 charIndex = charIndex == 0 ? 2 : charIndex - 1;
             }
             updateNameUI();
@@ -207,7 +289,72 @@
             }
         }
 
-        initVars();
+        // --- CONEXIÓN REAL CON GOOGLE FIREBASE CLOUD FIRESTORE ---
+        async function saveScore() {
+            const playerName = String.fromCharCode(initials[0], initials[1], initials[2]);
+            const saveBtn = document.getElementById("save-btn");
+            
+            saveBtn.disabled = true;
+            saveBtn.innerText = "GUARDANDO...";
+
+            try {
+                // Añadimos un documento a la colección "leaderboard" de tu base de datos
+                await db.collection("leaderboard").add({
+                    name: playerName,
+                    score: score,
+                    date: firebase.firestore.FieldValue.serverTimestamp() // Guarda la fecha/hora exacta
+                });
+                
+                // Si sale bien, mostramos el ranking de internet
+                showLeaderboard();
+            } catch (error) {
+                console.error("Error al guardar en Firebase:", error);
+                alert("Hubo un problema al conectar con la nube. ¿Configuraste tus credenciales?");
+                saveBtn.disabled = false;
+                saveBtn.innerText = "GUARDAR EN LA NUBE";
+            }
+        }
+
+        async function showLeaderboard() {
+            document.getElementById("start-screen").style.display = "none";
+            document.getElementById("over-screen").style.display = "none";
+            
+            const list = document.getElementById("leaderboard-list");
+            list.innerHTML = "<li>CARGANDO RANKING...</li>"; 
+            document.getElementById("leaderboard-screen").style.display = "flex";
+            
+            try {
+                // Pedimos los 5 mejores puntajes ordenados de mayor a menor de todo internet
+                const snapshot = await db.collection("leaderboard")
+                                         .orderBy("score", "desc")
+                                         .limit(5)
+                                         .get();
+                
+                list.innerHTML = ""; // Limpiamos el texto de carga
+                
+                if(snapshot.empty) {
+                    list.innerHTML = "<li><span>---</span> <span>000</span></li>";
+                    return;
+                }
+                
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    let li = document.createElement("li");
+                    li.innerHTML = `<span>${data.name}</span> <span>${data.score.toString().padStart(3, '0')}</span>`;
+                    list.appendChild(li);
+                });
+            } catch (error) {
+                console.error("Error al descargar de Firebase:", error);
+                list.innerHTML = "<li style='color:red'>ERROR AL CARGAR DATOS</li>";
+            }
+        }
+
+        function resetToStart() {
+            document.getElementById("leaderboard-screen").style.display = "none";
+            document.getElementById("start-screen").style.display = "flex";
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
     </script>
 </body>
 </html>
