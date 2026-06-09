@@ -47,6 +47,13 @@
         .btn:hover { background: #00ff41; color: #000; }
         .btn:disabled { border-color: #333; color: #333; cursor: not-allowed; }
 
+        .btn-rojo {
+            border-color: #ff3131; color: #ff3131; margin-top: 15px;
+        }
+        .btn-rojo:hover {
+            background: #ff3131; color: #000;
+        }
+
         /* Ingreso de Nombre */
         .name-entry { display: flex; gap: 15px; margin: 20px 0; }
         .letter-box {
@@ -100,6 +107,7 @@
             </div>
             <p style="font-size: 12px; margin-bottom: 10px;">USA LAS FLECHAS PARA CAMBIAR LETRAS</p>
             <button class="btn" id="save-btn" onclick="saveScore()">GUARDAR EN LA NUBE</button>
+            <button class="btn btn-rojo" onclick="resetToStart()">SALIR SIN GUARDAR</button>
         </div>
 
         <div id="leaderboard-screen" class="overlay" style="display: none;">
@@ -355,8 +363,10 @@
             });
         }
 
+        // --- FUNCIÓN MODIFICADA PARA OCULTAR LA PANTALLA DE GAME OVER ---
         function resetToStart() {
             document.getElementById("leaderboard-screen").style.display = "none";
+            document.getElementById("over-screen").style.display = "none"; // Se asegura de ocultar Game Over
             document.getElementById("start-screen").style.display = "flex";
             ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
