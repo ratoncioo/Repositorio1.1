@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>nigga snake</title>
+    <title>Snake Arcade</title>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
@@ -30,7 +30,6 @@
         
         canvas { display: block; background: #000; }
         
-        /* Capas sobre el juego (Menús) */
         .overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.92); display: flex; flex-direction: column;
@@ -54,14 +53,12 @@
             background: #ff3131; color: #000;
         }
 
-        /* Ingreso de Nombre */
         .name-entry { display: flex; gap: 15px; margin: 20px 0; }
         .letter-box {
             width: 40px; height: 50px; border-bottom: 4px solid #00ff41;
             font-size: 36px; display: flex; align-items: center; justify-content: center;
         }
 
-        /* Tabla de Puntuaciones */
         #leaderboard-list {
             list-style: none; margin: 20px 0; width: 80%; text-align: left;
         }
@@ -70,7 +67,6 @@
             border-bottom: 1px dashed #00ff41; padding-bottom: 5px;
         }
 
-        /* Controles Táctiles */
         #controls { display: grid; grid-template-columns: repeat(3, 60px); gap: 10px; margin-top: 20px; }
         .ctrl-btn {
             width: 60px; height: 60px; background: #111; border: 2px solid #333;
@@ -112,8 +108,7 @@
 
         <div id="leaderboard-screen" class="overlay" style="display: none;">
             <h1>TOP 5 GLOBAL</h1>
-            <ul id="leaderboard-list">
-                </ul>
+            <ul id="leaderboard-list"></ul>
             <button class="btn" onclick="resetToStart()">VOLVER</button>
         </div>
     </div>
@@ -126,9 +121,6 @@
     </div>
 
     <script>
-        // =========================================================================
-        // CONFIGURACIÓN DE FIREBASE Y PRE-CARGA DE DATOS
-        // =========================================================================
         const firebaseConfig = {
             apiKey: "AIzaSyBbhPYtbU3ZWBEY3-ys0wsealIyBTWxt7Y",
             authDomain: "snakescore-37662.firebaseapp.com",
@@ -138,43 +130,31 @@
             appId: "1:1068045159602:web:8a08d2e012a8d0ea5a0dab"
         };
 
-        // Inicializar Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // 1. Activar caché local para respuestas ultrarrápidas
-        db.enablePersistence().catch((err) => {
-            console.warn("La persistencia de caché falló:", err);
-        });
+        db.enablePersistence().catch((err) => { console.warn("Cache fail:", err); });
 
-        // 2. Pre-carga en tiempo real del Ranking Global
         let globalRanking = []; 
-        db.collection("leaderboard")
-          .orderBy("score", "desc")
-          .limit(5)
-          .onSnapshot((snapshot) => {
-              globalRanking = [];
-              snapshot.forEach(doc => {
-                  globalRanking.push(doc.data());
-              });
-          });
-        // =========================================================================
+        db.collection("leaderboard").orderBy("score", "desc").limit(5).onSnapshot((snapshot) => {
+            globalRanking = [];
+            snapshot.forEach(doc => { globalRanking.push(doc.data()); });
+        });
 
         const canvas = document.getElementById("game");
         const ctx = canvas.getContext("2d");
         const box = 20;
         
-        // Ajuste para móviles
         const size = Math.min(window.innerWidth - 30, 400);
         canvas.width = size - (size % box);
         canvas.height = size - (size % box);
 
         let snake, food, score, gameLoop, d;
         let isOver = false;
+        let lastTouchTime = 0; // Control anti-bug
         
-        // Variables de Arcade Name Entry
         let charIndex = 0;
-        let initials = [65, 65, 65]; // Códigos ASCII para A, A, A
+        let initials = [65, 65, 65];
 
         function initVars() {
             snake = [{x: Math.floor((canvas.width/box)/2) * box, y: Math.floor((canvas.height/box)/2) * box}];
@@ -193,13 +173,9 @@
         function spawnFood() {
             let cols = canvas.width / box;
             let rows = canvas.height / box;
-            food = {
-                x: Math.floor(Math.random() * cols) * box,
-                y: Math.floor(Math.random() * rows) * box
-            };
+            food = { x: Math.floor(Math.random() * cols) * box, y: Math.floor(Math.random() * rows) * box };
         }
 
-        // --- SISTEMA DE CONTROLES UNIFICADO ---
         document.addEventListener("keydown", (e) => {
             if(isOver && document.getElementById("over-screen").style.display !== "none") {
                 handleNameEntry(e.keyCode);
@@ -212,6 +188,10 @@
         });
 
         function handleTouch(dir) {
+            const now = Date.now();
+            if (now - lastTouchTime < 150) return; 
+            lastTouchTime = now;
+
             if (isOver && document.getElementById("over-screen").style.display !== "none") {
                 if (dir === 'UP') handleNameEntry(38);
                 if (dir === 'DOWN') handleNameEntry(40);
@@ -228,49 +208,35 @@
             }
         }
 
-        // --- LÓGICA DEL JUEGO ---
         function draw() {
             ctx.fillStyle = "black";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-
             for(let i = 0; i < snake.length; i++) {
                 ctx.fillStyle = (i == 0) ? "#00ff41" : "#008f11";
                 ctx.fillRect(snake[i].x, snake[i].y, box - 1, box - 1);
             }
-
             ctx.fillStyle = "#ff3131";
             ctx.fillRect(food.x, food.y, box - 1, box - 1);
-
             let snakeX = snake[0].x;
             let snakeY = snake[0].y;
-
             if(d == "LEFT") snakeX -= box;
             if(d == "UP") snakeY -= box;
             if(d == "RIGHT") snakeX += box;
             if(d == "DOWN") snakeY += box;
-
             if(snakeX == food.x && snakeY == food.y) {
                 score += 10;
                 document.getElementById("val").innerText = score.toString().padStart(3, '0');
                 spawnFood();
-            } else {
-                snake.pop();
-            }
-
+            } else { snake.pop(); }
             let newHead = { x: snakeX, y: snakeY };
-
             if(snakeX < 0 || snakeX >= canvas.width || snakeY < 0 || snakeY >= canvas.height || collision(newHead, snake)) {
-                gameOver();
-                return;
+                gameOver(); return;
             }
-
             snake.unshift(newHead);
         }
 
         function collision(head, array) {
-            for(let i = 0; i < array.length; i++) {
-                if(head.x == array[i].x && head.y == array[i].y) return true;
-            }
+            for(let i = 0; i < array.length; i++) { if(head.x == array[i].x && head.y == array[i].y) return true; }
             return false;
         }
 
@@ -290,17 +256,11 @@
             document.getElementById("over-screen").style.display = "flex";
         }
 
-        // --- INGRESO DE NOMBRE (ARCADE) ---
         function handleNameEntry(key) {
-            if(key == 38) {
-                initials[charIndex] = initials[charIndex] == 90 ? 65 : initials[charIndex] + 1;
-            } else if(key == 40) {
-                initials[charIndex] = initials[charIndex] == 65 ? 90 : initials[charIndex] - 1;
-            } else if(key == 39) {
-                charIndex = (charIndex + 1) % 3;
-            } else if(key == 37) {
-                charIndex = charIndex == 0 ? 2 : charIndex - 1;
-            }
+            if(key == 38) initials[charIndex] = initials[charIndex] == 90 ? 65 : initials[charIndex] + 1;
+            else if(key == 40) initials[charIndex] = initials[charIndex] == 65 ? 90 : initials[charIndex] - 1;
+            else if(key == 39) charIndex = (charIndex + 1) % 3;
+            else if(key == 37) charIndex = charIndex == 0 ? 2 : charIndex - 1;
             updateNameUI();
         }
 
@@ -313,49 +273,36 @@
             }
         }
 
-        // --- CONEXIÓN REAL CON GOOGLE FIREBASE CLOUD FIRESTORE ---
         async function saveScore() {
             const playerName = String.fromCharCode(initials[0], initials[1], initials[2]);
             const saveBtn = document.getElementById("save-btn");
-            
             saveBtn.disabled = true;
             saveBtn.innerText = "GUARDANDO...";
-
             try {
-                // Añadimos el nuevo récord
                 await db.collection("leaderboard").add({
                     name: playerName,
                     score: score,
                     date: firebase.firestore.FieldValue.serverTimestamp()
                 });
-                
-                // Mostrar el ranking instantáneo
                 showLeaderboard();
             } catch (error) {
-                console.error("Error al guardar en Firebase:", error);
-                alert("Hubo un problema al conectar con la nube.");
+                alert("Error al conectar.");
                 saveBtn.disabled = false;
                 saveBtn.innerText = "GUARDAR EN LA NUBE";
             }
         }
 
-        // Función actualizada para usar los datos pre-cargados
         function showLeaderboard() {
             document.getElementById("start-screen").style.display = "none";
             document.getElementById("over-screen").style.display = "none";
-            
             const list = document.getElementById("leaderboard-list");
             list.innerHTML = ""; 
             document.getElementById("leaderboard-screen").style.display = "flex";
-            
-            // Si la conexión a internet es lenta y aún no llega el primer paquete
             if(globalRanking.length === 0) {
                 list.innerHTML = "<li><span>---</span> <span>000</span></li>";
-                setTimeout(showLeaderboard, 500); // Reintenta en medio segundo
+                setTimeout(showLeaderboard, 500);
                 return;
             }
-            
-            // Dibujamos el ranking instantáneamente desde la variable global
             globalRanking.forEach(data => {
                 let li = document.createElement("li");
                 li.innerHTML = `<span>${data.name}</span> <span>${data.score.toString().padStart(3, '0')}</span>`;
@@ -363,14 +310,12 @@
             });
         }
 
-        // --- FUNCIÓN MODIFICADA PARA OCULTAR LA PANTALLA DE GAME OVER ---
         function resetToStart() {
             document.getElementById("leaderboard-screen").style.display = "none";
-            document.getElementById("over-screen").style.display = "none"; // Se asegura de ocultar Game Over
+            document.getElementById("over-screen").style.display = "none";
             document.getElementById("start-screen").style.display = "flex";
             ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
-
     </script>
 </body>
 </html>
