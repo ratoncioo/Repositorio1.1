@@ -315,13 +315,12 @@ canvas.height = SIZE;
 const COLS = SIZE / BOX;
 const ROWS = SIZE / BOX;
 
-// interpolation
-let snake, food, score, d, nextD;
+let snake, prevSnake, food, score, d, nextD;
 let isGameRunning = false;
 let isOver = false;
 let lastTick = 0;
 let rafId = null;
-const TICK_MS = 90; // game speed
+const TICK_MS = 100; // game speed
 
 // smooth rendering
 let interpProgress = 0;  // 0..1 between ticks
@@ -357,6 +356,7 @@ function initVars() {
     const cx = Math.floor(COLS/2) * BOX;
     const cy = Math.floor(ROWS/2) * BOX;
     snake = [{x:cx, y:cy}];
+    prevSnake = [{x:cx, y:cy}];
     score = 0;
     d = "RIGHT";
     nextD = "RIGHT";
@@ -409,6 +409,7 @@ function gameFrame(ts) {
 
 function tick() {
     d = nextD;
+    prevSnake = snake.map(s => ({...s})); // snapshot before move
 
     let hx = snake[0].x;
     let hy = snake[0].y;
@@ -514,33 +515,33 @@ function render(t) {
     ctx.fillRect(food.x + 1, food.y + 1, fs, fs);
     ctx.shadowBlur = 0;
 
-    // snake (with smooth interpolation on head)
-    const offsetX = d==="LEFT" ? -BOX*t : d==="RIGHT" ? BOX*t : 0;
-    const offsetY = d==="UP"   ? -BOX*t : d==="DOWN"  ? BOX*t : 0;
+    // snake: full-body train interpolation
+    // Each segment lerps from its previous position to its current position.
+    // This keeps the whole body connected and gap-free.
+    const prev = prevSnake || snake;
 
-    for (let i = snake.length-1; i >= 0; i--) {
-        let sx = snake[i].x;
-        let sy = snake[i].y;
-        if (i === 0) { sx += offsetX; sy += offsetY; }
+    for (let i = snake.length - 1; i >= 0; i--) {
+        const from = prev[i] || snake[i];
+        const to   = snake[i];
+        const sx = from.x + (to.x - from.x) * t;
+        const sy = from.y + (to.y - from.y) * t;
 
         const ratio = 1 - i / snake.length;
+
         if (i === 0) {
-            // head: bright
             ctx.shadowColor = "#00ff41";
             ctx.shadowBlur  = 8;
             ctx.fillStyle   = "#00ff41";
             ctx.fillRect(sx + 1, sy + 1, BOX - 2, BOX - 2);
-            // eyes
             ctx.shadowBlur = 0;
             ctx.fillStyle = "#000";
             const ew = 3, eh = 3;
-            if (d==="RIGHT") { ctx.fillRect(sx+BOX-6, sy+3, ew, eh); ctx.fillRect(sx+BOX-6, sy+BOX-6, ew, eh); }
+            if (d==="RIGHT")     { ctx.fillRect(sx+BOX-6, sy+3, ew, eh); ctx.fillRect(sx+BOX-6, sy+BOX-6, ew, eh); }
             else if (d==="LEFT") { ctx.fillRect(sx+3, sy+3, ew, eh); ctx.fillRect(sx+3, sy+BOX-6, ew, eh); }
             else if (d==="UP")   { ctx.fillRect(sx+3, sy+3, ew, eh); ctx.fillRect(sx+BOX-6, sy+3, ew, eh); }
             else                 { ctx.fillRect(sx+3, sy+BOX-6, ew, eh); ctx.fillRect(sx+BOX-6, sy+BOX-6, ew, eh); }
         } else {
-            // body gradient: bright green → dark green
-            const g = Math.floor(0x8f + (0x00 - 0x8f) * (1 - ratio));
+            const g = Math.floor(0x8f * ratio);
             ctx.fillStyle = `rgb(0,${g},${Math.floor(17 * ratio)})`;
             ctx.fillRect(sx + 2, sy + 2, BOX - 4, BOX - 4);
         }
@@ -687,3 +688,5 @@ function resetToStart() {
 </script>
 </body>
 </html>
+
+v6
