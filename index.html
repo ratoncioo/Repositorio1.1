@@ -3,32 +3,287 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mi Sitio Web</title>
+    <title>Snake Game - PC y Móvil</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
+        * {
+            box-sizing: border-box;
             margin: 0;
-            background-color: #f0f2f5;
+            padding: 0;
+            user-select: none;
         }
-        .container {
-            text-align: center;
-            padding: 30px;
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+
+        body {
+            background-color: #1a1a1a;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            color: #fff;
+            overflow: hidden;
         }
-        h1 { color: #333; }
-        p { color: #666; }
+
+        h1 {
+            margin-bottom: 10px;
+            font-size: 24px;
+            color: #4CAF50;
+        }
+
+        #score-board {
+            font-size: 20px;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        #game-container {
+            position: relative;
+            background-color: #111;
+            border: 4px solid #4CAF50;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(76, 175, 80, 0.3);
+        }
+
+        canvas {
+            display: block;
+        }
+
+        /* Controles Táctiles */
+        #controls {
+            display: grid;
+            grid-template-columns: repeat(3, 70px);
+            grid-template-rows: repeat(3, 70px);
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            background-color: #333;
+            color: white;
+            border: 2px solid #555;
+            border-radius: 50%;
+            font-size: 24px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.1s, transform 0.1s;
+            touch-action: manipulation;
+        }
+
+        .btn:active {
+            background-color: #4CAF50;
+            border-color: #81C784;
+            transform: scale(0.95);
+        }
+
+        /* Ocultar espacios vacíos en la rejilla de botones */
+        .empty {
+            visibility: hidden;
+        }
+
+        #up { grid-column: 2; grid-row: 1; }
+        #left { grid-column: 1; grid-row: 2; }
+        #right { grid-column: 3; grid-row: 2; }
+        #down { grid-column: 2; grid-row: 3; }
+
+        /* Media query para ocultar controles en pantallas grandes (PC) si se prefiere, 
+           pero los dejamos visibles/adaptables por si reducen la ventana */
+        @media (min-width: 768px) {
+            h1 { font-size: 32px; }
+            /* Si quieres ocultar los botones en PC, desmarca la siguiente línea: */
+            /* #controls { display: none; } */
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>¡Hola Mundo!</h1>
-        <p>Mi nueva página web está en construcción.</p>
+
+    <h1>SNAKE GAME</h1>
+    <div id="score-board">Puntuación: <span id="score">0</span></div>
+
+    <div id="game-container">
+        <canvas id="gameCanvas" width="400" height="400"></canvas>
     </div>
+
+    <div id="controls">
+        <div class="btn" id="up">↑</div>
+        <div class="btn" id="left">←</div>
+        <div class="btn" id="right">→</div>
+        <div class="btn" id="down">↓</div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const scoreElement = document.getElementById("score");
+
+        // Ajuste adaptativo para pantallas pequeñas
+        const size = Math.min(window.innerWidth - 30, 400);
+        canvas.width = size - (size % 20);
+        canvas.height = size - (size % 20);
+
+        const gridSize = 20;
+        const tileCount = canvas.width / gridSize;
+
+        // Estado del juego
+        let snake = [{ x: 10, y: 10 }];
+        let food = { x: 5, y: 5 };
+        let dx = 1; // Dirección inicial (Derecha)
+        let dy = 0;
+        let score = 0;
+        let gameInterval;
+        const gameSpeed = 100; // Milisegundos por frame (menor = más rápido)
+
+        // Inicializar juego
+        function startGame() {
+            resetFood();
+            gameInterval = setInterval(update, gameSpeed);
+        }
+
+        // Bucle principal del juego
+        function update() {
+            moveSnake();
+
+            if (checkGameOver()) {
+                alert(`¡Juego Terminado! Tu puntuación fue: ${score}`);
+                resetGame();
+                return;
+            }
+
+            checkFoodCollision();
+            draw();
+        }
+
+        // Dibujar elementos en el Canvas
+        function draw() {
+            // Fondo
+            ctx.fillStyle = "#111";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Comida
+            ctx.fillStyle = "#FF5252";
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = "#FF5252";
+            ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize - 2, gridSize - 2);
+
+            // Serpiente
+            ctx.shadowBlur = 0; // Reset sombra para la serpiente
+            snake.forEach((part, index) => {
+                // La cabeza es de un verde más claro
+                ctx.fillStyle = index === 0 ? "#81C784" : "#4CAF50";
+                ctx.fillRect(part.x * gridSize, part.y * gridSize, gridSize - 2, gridSize - 2);
+            });
+        }
+
+        // Mover la serpiente simulando el avance
+        function moveSnake() {
+            const head = { x: snake[0].x + dx, y: snake[0].y + dy };
+            snake.unshift(head); // Añade nueva cabeza al principio
+            snake.pop(); // Quita la cola
+        }
+
+        // Cambiar dirección evitando el giro de 180 grados instantáneo
+        function changeDirection(direction) {
+            if (direction === 'UP' && dy === 0) { dx = 0; dy = -1; }
+            if (direction === 'DOWN' && dy === 0) { dx = 0; dy = 1; }
+            if (direction === 'LEFT' && dx === 0) { dx = -1; dy = 0; }
+            if (direction === 'RIGHT' && dx === 0) { dx = 1; dy = 0; }
+        }
+
+        // Escuchar teclado (PC: Flechas y WASD)
+        document.addEventListener("keydown", event => {
+            switch (event.key.toLowerCase()) {
+                case "arrowup":
+                case "w":
+                    changeDirection('UP');
+                    break;
+                case "arrowdown":
+                case "s":
+                    changeDirection('DOWN');
+                    break;
+                case "arrowleft":
+                case "a":
+                    changeDirection('LEFT');
+                    break;
+                case "arrowright":
+                case "d":
+                    changeDirection('RIGHT');
+                    break;
+            }
+        });
+
+        // Escuchar botones de la pantalla (Móvil)
+        document.getElementById("up").addEventListener("touchstart", (e) => { e.preventDefault(); changeDirection('UP'); });
+        document.getElementById("down").addEventListener("touchstart", (e) => { e.preventDefault(); changeDirection('DOWN'); });
+        document.getElementById("left").addEventListener("touchstart", (e) => { e.preventDefault(); changeDirection('LEFT'); });
+        document.getElementById("right").addEventListener("touchstart", (e) => { e.preventDefault(); changeDirection('RIGHT'); });
+        
+        // Soporte para clicks en PC también en los botones en pantalla
+        document.getElementById("up").addEventListener("click", () => changeDirection('UP'));
+        document.getElementById("down").addEventListener("click", () => changeDirection('DOWN'));
+        document.getElementById("left").addEventListener("click", () => changeDirection('LEFT'));
+        document.getElementById("right").addEventListener("click", () => changeDirection('RIGHT'));
+
+        // Revisar colisiones con paredes o consigo misma
+        function checkGameOver() {
+            const head = snake[0];
+            
+            // Paredes
+            if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
+                return true;
+            }
+
+            // Cuerpo
+            for (let i = 1; i < snake.length; i++) {
+                if (head.x === snake[i].x && head.y === snake[i].y) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Revisar si come la fruta
+        function checkFoodCollision() {
+            const head = snake[0];
+            if (head.x === food.x && head.y === food.y) {
+                score += 10;
+                scoreElement.innerText = score;
+                
+                // Crecer: añadimos una parte replicando la cola actual
+                const tail = { ...snake[snake.length - 1] };
+                snake.push(tail);
+                
+                resetFood();
+            }
+        }
+
+        // Reposicionar la comida en un lugar aleatorio vacío
+        function resetFood() {
+            food.x = Math.floor(Math.random() * tileCount);
+            food.y = Math.floor(Math.random() * tileCount);
+
+            // Evitar que la comida aparezca encima de la serpiente
+            snake.forEach(part => {
+                if (part.x === food.x && part.y === food.y) {
+                    resetFood();
+                }
+            });
+        }
+
+        // Reiniciar el estado del juego tras perder
+        function resetGame() {
+            clearInterval(gameInterval);
+            snake = [{ x: 10, y: 10 }];
+            dx = 1;
+            dy = 0;
+            score = 0;
+            scoreElement.innerText = score;
+            startGame();
+        }
+
+        // Iniciar al cargar la página
+        startGame();
+    </script>
 </body>
 </html>
