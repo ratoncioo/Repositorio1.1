@@ -1,1 +1,95 @@
 
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proyecto 3</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
+            font-family: 'Courier New', Courier, monospace;
+            color: #00ff41;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 48px;
+            text-shadow: 0 0 20px #00ff41;
+            margin-bottom: 20px;
+            animation: glow 2s ease-in-out infinite;
+        }
+
+        p {
+            font-size: 18px;
+            color: #008f11;
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+
+        .back-btn {
+            display: inline-block;
+            background: transparent;
+            border: 2px solid #00ff41;
+            color: #00ff41;
+            padding: 12px 30px;
+            font-size: 16px;
+            cursor: pointer;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+            text-transform: uppercase;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .back-btn:hover {
+            background: #00ff41;
+            color: #000;
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.6);
+        }
+
+        @keyframes glow {
+            0%, 100% { text-shadow: 0 0 20px #00ff41; }
+            50% { text-shadow: 0 0 40px #00ff41, 0 0 60px #00ff41; }
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 36px;
+            }
+
+            p {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>🎮 PROYECTO 3</h1>
+        <p>
+            Este es el Proyecto 3. Aquí irá el contenido de tu segundo proyecto.
+            Puedes agregar tu código, descripción y funcionalidades aquí.
+        </p>
+        <a href="../index.html" class="back-btn">◄ VOLVER</a>
+    </div>
+
+</body>
+</html>
