@@ -3,166 +3,323 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DOOM — Jugar en el navegador</title>
+  <title>DOOM</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
-    body {
-      background: #111;
-      color: #ccc;
-      font-family: system-ui, sans-serif;
-      min-height: 100vh;
+    :root {
+      --red:     #c0392b;
+      --red-hot: #e74c3c;
+      --red-dim: #7b1e14;
+      --bg:      #0a0a0a;
+      --bg2:     #111111;
+      --bg3:     #1a1a1a;
+      --border:  #2a2a2a;
+      --text:    #e8e8e8;
+      --muted:   #555;
+      --faint:   #2c2c2c;
+    }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: var(--bg);
+      font-family: 'Inter', system-ui, sans-serif;
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    /* ── TOP BAR ── */
+    header {
+      width: 100%;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      height: 52px;
       display: flex;
-      flex-direction: column;
       align-items: center;
-      justify-content: center;
-      gap: 16px;
-      padding: 24px;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 10;
     }
 
-    h1 {
-      color: #e74c3c;
-      font-size: 48px;
-      letter-spacing: 10px;
-      font-weight: 700;
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
 
-    .subtitle {
-      font-size: 13px;
-      color: #555;
-      letter-spacing: 2px;
+    .logo-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--red-hot);
+      box-shadow: 0 0 8px var(--red-hot);
+    }
+
+    .logo-text {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 4px;
+      color: var(--text);
       text-transform: uppercase;
     }
 
-    #doom-container {
+    .badge {
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      border: 1px solid var(--red-dim);
+      color: var(--red-hot);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    /* ── MAIN LAYOUT ── */
+    main {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 28px 24px 40px;
+      gap: 20px;
+    }
+
+    /* ── GAME CONTAINER ── */
+    #game-wrap {
       position: relative;
-      width: 640px;
-      height: 400px;
+      width: 100%;
+      max-width: 1100px;
+      aspect-ratio: 16/9;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: #000;
     }
 
     #doom-frame {
-      width: 100%;
-      height: 100%;
+      width: 100%; height: 100%;
       border: none;
-      border-radius: 6px;
       display: block;
-      background: #000;
     }
 
-    #doom-overlay {
+    /* ── OVERLAY ── */
+    #overlay {
       position: absolute;
       inset: 0;
       background: #000;
-      border-radius: 6px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 20px;
+      gap: 0;
       cursor: pointer;
+      transition: opacity 0.4s;
     }
 
-    #doom-overlay .big-title {
-      color: #e74c3c;
-      font-size: 56px;
-      font-weight: 700;
-      letter-spacing: 12px;
+    #overlay::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 50% at 50% 60%, rgba(192,57,43,0.18) 0%, transparent 70%);
+      pointer-events: none;
     }
 
-    #doom-overlay .tagline {
-      color: #555;
+    .ov-eyebrow {
+      font-size: 11px;
+      letter-spacing: 4px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+
+    .ov-title {
+      font-size: clamp(64px, 10vw, 120px);
+      font-weight: 600;
+      letter-spacing: 20px;
+      color: #fff;
+      line-height: 1;
+      margin-bottom: 6px;
+      text-indent: 20px;
+    }
+
+    .ov-title span {
+      color: var(--red-hot);
+    }
+
+    .ov-sub {
       font-size: 13px;
-      letter-spacing: 2px;
+      letter-spacing: 3px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 40px;
     }
 
     #play-btn {
-      background: #e74c3c;
+      background: var(--red);
       color: #fff;
       border: none;
       border-radius: 6px;
-      padding: 14px 48px;
-      font-size: 20px;
-      font-weight: 600;
+      padding: 14px 52px;
+      font-size: 15px;
+      font-weight: 500;
+      letter-spacing: 2px;
+      text-transform: uppercase;
       cursor: pointer;
-      letter-spacing: 1px;
       transition: background 0.2s, transform 0.1s;
+      font-family: inherit;
     }
 
-    #play-btn:hover { background: #c0392b; }
+    #play-btn:hover { background: var(--red-hot); }
     #play-btn:active { transform: scale(0.97); }
 
-    .hint { color: #444; font-size: 12px; }
+    .ov-hint {
+      margin-top: 14px;
+      font-size: 12px;
+      color: #333;
+      letter-spacing: 1px;
+    }
 
-    .controls {
-      display: flex;
-      gap: 24px;
-      flex-wrap: wrap;
-      justify-content: center;
+    /* ── BOTTOM PANEL ── */
+    .panel {
+      width: 100%;
+      max-width: 1100px;
+      display: grid;
+      grid-template-columns: 1fr 1px 1fr;
+      gap: 0;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .divider { background: var(--border); }
+
+    .panel-section {
+      padding: 20px 28px;
+    }
+
+    .panel-label {
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    /* ── CONTROLS ── */
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
     }
 
     .ctrl {
       display: flex;
       align-items: center;
       gap: 8px;
-      font-size: 13px;
-      color: #777;
+      font-size: 12px;
+      color: #888;
     }
 
     .key {
-      background: #1e1e1e;
-      border: 1px solid #333;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-bottom: 2px solid #000;
       border-radius: 4px;
-      padding: 3px 9px;
-      font-family: monospace;
-      font-size: 12px;
-      color: #ccc;
+      padding: 3px 8px;
+      font-family: 'Inter', monospace;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text);
+      min-width: 36px;
+      text-align: center;
+      white-space: nowrap;
     }
 
-    .footer {
-      font-size: 11px;
-      color: #333;
-      text-align: center;
-      max-width: 640px;
+    /* ── INFO ── */
+    .info-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+    }
+
+    .info-row span:first-child { color: var(--muted); }
+    .info-row span:last-child  { color: var(--text); font-weight: 500; }
+
+    .info-row .red { color: var(--red-hot); }
   </style>
 </head>
 <body>
 
-  <h1>DOOM</h1>
-  <p class="subtitle">1993 · id Software · Episodio 1 completo</p>
+<header>
+  <div class="logo">
+    <div class="logo-dot"></div>
+    <span class="logo-text">DOOM</span>
+  </div>
+  <div class="badge">WebAssembly</div>
+</header>
 
-  <div id="doom-container">
+<main>
+
+  <div id="game-wrap">
     <iframe id="doom-frame" allow="autoplay; fullscreen" title="Doom en el navegador"></iframe>
-    <div id="doom-overlay">
-      <div class="big-title">DOOM</div>
-      <div class="tagline">Knee-Deep in the Dead</div>
-      <button id="play-btn">▶ JUGAR AHORA</button>
-      <div class="hint">Haz clic para cargar el juego</div>
+    <div id="overlay">
+      <div class="ov-eyebrow">id Software · 1993</div>
+      <div class="ov-title">D<span>OO</span>M</div>
+      <div class="ov-sub">Knee-Deep in the Dead</div>
+      <button id="play-btn">▶ &nbsp; Jugar ahora</button>
+      <div class="ov-hint">Haz clic en cualquier lugar para comenzar</div>
     </div>
   </div>
 
-  <div class="controls">
-    <div class="ctrl"><span class="key">WASD</span> Moverse</div>
-    <div class="ctrl"><span class="key">Ctrl</span> Disparar</div>
-    <div class="ctrl"><span class="key">Space</span> Abrir puertas</div>
-    <div class="ctrl"><span class="key">E</span> Usar</div>
-    <div class="ctrl"><span class="key">Shift</span> Correr</div>
-    <div class="ctrl"><span class="key">1–7</span> Cambiar arma</div>
-    <div class="ctrl"><span class="key">Tab</span> Mapa</div>
-    <div class="ctrl"><span class="key">Esc</span> Menú</div>
+  <div class="panel">
+    <div class="panel-section">
+      <div class="panel-label">Controles</div>
+      <div class="controls-grid">
+        <div class="ctrl"><span class="key">W A S D</span> <span>Mover</span></div>
+        <div class="ctrl"><span class="key">Ctrl</span> <span>Disparar</span></div>
+        <div class="ctrl"><span class="key">Space</span> <span>Puertas</span></div>
+        <div class="ctrl"><span class="key">Shift</span> <span>Correr</span></div>
+        <div class="ctrl"><span class="key">E</span> <span>Usar</span></div>
+        <div class="ctrl"><span class="key">1–7</span> <span>Armas</span></div>
+        <div class="ctrl"><span class="key">Tab</span> <span>Mapa</span></div>
+        <div class="ctrl"><span class="key">Esc</span> <span>Menú</span></div>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="panel-section">
+      <div class="panel-label">Información del juego</div>
+      <div class="info-list">
+        <div class="info-row"><span>Título</span><span class="red">DOOM Shareware</span></div>
+        <div class="info-row"><span>Episodio</span><span>1 — Knee-Deep in the Dead</span></div>
+        <div class="info-row"><span>Niveles</span><span>9 mapas</span></div>
+        <div class="info-row"><span>Motor</span><span>WebAssembly (WASM)</span></div>
+        <div class="info-row"><span>Instalación</span><span>No requerida</span></div>
+      </div>
+    </div>
   </div>
 
-  <p class="footer">
-    Doom shareware (Episodio 1) — corre en el navegador vía WebAssembly.<br>
-    No requiere instalación ni plugins. Abre este archivo en cualquier navegador moderno.
-  </p>
+</main>
 
-  <script>
-    document.getElementById('doom-overlay').addEventListener('click', function () {
-      this.style.display = 'none';
-      document.getElementById('doom-frame').src = 'https://silentspacemarine.com/';
-    });
-  </script>
+<script>
+  const overlay = document.getElementById('overlay');
+  const frame   = document.getElementById('doom-frame');
+
+  overlay.addEventListener('click', () => {
+    overlay.style.opacity = '0';
+    overlay.style.pointerEvents = 'none';
+    setTimeout(() => overlay.style.display = 'none', 400);
+    frame.src = 'https://silentspacemarine.com/';
+  });
+</script>
 
 </body>
 </html>
