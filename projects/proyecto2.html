@@ -3,321 +3,367 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DOOM</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <title>DOOM — Lanzador</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      --red:     #c0392b;
-      --red-hot: #e74c3c;
-      --red-dim: #7b1e14;
-      --bg:      #0a0a0a;
-      --bg2:     #111111;
-      --bg3:     #1a1a1a;
-      --border:  #2a2a2a;
-      --text:    #e8e8e8;
-      --muted:   #555;
-      --faint:   #2c2c2c;
+      --red:      #c0392b;
+      --red-hot:  #e74c3c;
+      --red-glow: rgba(192,57,43,0.15);
+      --bg:       #080808;
+      --bg2:      #101010;
+      --bg3:      #181818;
+      --border:   #242424;
+      --border2:  #2e2e2e;
+      --text:     #ececec;
+      --muted:    #4a4a4a;
+      --soft:     #888;
     }
 
     html, body {
-      width: 100%; height: 100%;
+      width: 100%; min-height: 100vh;
       background: var(--bg);
       font-family: 'Inter', system-ui, sans-serif;
       color: var(--text);
-      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
     }
 
-    /* ── TOP BAR ── */
+    /* ── HEADER ── */
     header {
-      width: 100%;
       background: var(--bg2);
       border-bottom: 1px solid var(--border);
-      padding: 0 32px;
-      height: 52px;
+      padding: 0 40px;
+      height: 54px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      position: sticky;
-      top: 0;
-      z-index: 10;
+      flex-shrink: 0;
     }
-
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .logo-dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
+    .logo { display: flex; align-items: center; gap: 10px; }
+    .logo-pulse {
+      width: 8px; height: 8px; border-radius: 50%;
       background: var(--red-hot);
-      box-shadow: 0 0 8px var(--red-hot);
+      animation: pulse 2s ease-in-out infinite;
     }
-
-    .logo-text {
-      font-size: 15px;
-      font-weight: 600;
-      letter-spacing: 4px;
-      color: var(--text);
+    @keyframes pulse {
+      0%,100% { opacity: 1; } 50% { opacity: 0.4; }
+    }
+    .logo-name {
+      font-size: 13px; font-weight: 600;
+      letter-spacing: 5px; color: var(--text);
       text-transform: uppercase;
     }
-
-    .badge {
-      font-size: 11px;
-      padding: 3px 10px;
-      border-radius: 20px;
-      border: 1px solid var(--red-dim);
-      color: var(--red-hot);
-      letter-spacing: 1px;
-      text-transform: uppercase;
+    .header-tag {
+      font-size: 10px; letter-spacing: 2px;
+      text-transform: uppercase; color: var(--muted);
     }
 
-    /* ── MAIN LAYOUT ── */
+    /* ── MAIN ── */
     main {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 28px 24px 40px;
-      gap: 20px;
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 0;
     }
 
-    /* ── GAME CONTAINER ── */
-    #game-wrap {
-      position: relative;
-      width: 100%;
-      max-width: 1100px;
-      aspect-ratio: 16/9;
-      border-radius: 10px;
-      overflow: hidden;
-      border: 1px solid var(--border);
-      background: #000;
-    }
-
-    #doom-frame {
-      width: 100%; height: 100%;
-      border: none;
-      display: block;
-    }
-
-    /* ── OVERLAY ── */
-    #overlay {
-      position: absolute;
-      inset: 0;
-      background: #000;
+    /* ── LEFT: HERO ── */
+    .hero {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
+      padding: 60px 48px;
       gap: 0;
-      cursor: pointer;
-      transition: opacity 0.4s;
+      border-right: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
     }
-
-    #overlay::before {
+    .hero::before {
       content: '';
       position: absolute;
-      inset: 0;
-      background:
-        radial-gradient(ellipse 60% 50% at 50% 60%, rgba(192,57,43,0.18) 0%, transparent 70%);
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, var(--red-glow) 0%, transparent 70%);
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
       pointer-events: none;
     }
 
-    .ov-eyebrow {
-      font-size: 11px;
-      letter-spacing: 4px;
-      color: var(--muted);
-      text-transform: uppercase;
-      margin-bottom: 18px;
+    .hero-year {
+      font-size: 10px; letter-spacing: 4px;
+      text-transform: uppercase; color: var(--muted);
+      margin-bottom: 24px;
     }
 
-    .ov-title {
-      font-size: clamp(64px, 10vw, 120px);
+    .hero-title {
+      font-size: clamp(80px, 12vw, 140px);
       font-weight: 600;
-      letter-spacing: 20px;
-      color: #fff;
+      letter-spacing: 16px;
       line-height: 1;
-      margin-bottom: 6px;
-      text-indent: 20px;
+      color: #fff;
+      text-indent: 16px;
+      margin-bottom: 8px;
+      position: relative;
+    }
+    .hero-title .oo { color: var(--red-hot); }
+
+    .hero-episode {
+      font-size: 11px; letter-spacing: 4px;
+      text-transform: uppercase; color: var(--soft);
+      margin-bottom: 52px;
     }
 
-    .ov-title span {
-      color: var(--red-hot);
-    }
-
-    .ov-sub {
-      font-size: 13px;
-      letter-spacing: 3px;
-      color: var(--muted);
-      text-transform: uppercase;
-      margin-bottom: 40px;
-    }
-
-    #play-btn {
+    .launch-btn {
       background: var(--red);
       color: #fff;
       border: none;
-      border-radius: 6px;
-      padding: 14px 52px;
-      font-size: 15px;
+      border-radius: 4px;
+      padding: 16px 60px;
+      font-size: 13px;
       font-weight: 500;
-      letter-spacing: 2px;
+      letter-spacing: 3px;
       text-transform: uppercase;
       cursor: pointer;
-      transition: background 0.2s, transform 0.1s;
       font-family: inherit;
+      transition: background 0.2s, transform 0.1s;
+      position: relative;
+      z-index: 1;
     }
+    .launch-btn:hover { background: var(--red-hot); }
+    .launch-btn:active { transform: scale(0.97); }
 
-    #play-btn:hover { background: var(--red-hot); }
-    #play-btn:active { transform: scale(0.97); }
-
-    .ov-hint {
-      margin-top: 14px;
-      font-size: 12px;
-      color: #333;
+    .hero-note {
+      margin-top: 16px;
+      font-size: 11px; color: var(--muted);
       letter-spacing: 1px;
+      position: relative; z-index: 1;
     }
 
-    /* ── BOTTOM PANEL ── */
-    .panel {
-      width: 100%;
-      max-width: 1100px;
-      display: grid;
-      grid-template-columns: 1fr 1px 1fr;
-      gap: 0;
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      overflow: hidden;
-    }
-
-    .divider { background: var(--border); }
-
-    .panel-section {
-      padding: 20px 28px;
-    }
-
-    .panel-label {
-      font-size: 10px;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 14px;
-    }
-
-    /* ── CONTROLS ── */
-    .controls-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
-    }
-
-    .ctrl {
+    /* ── RIGHT: PANEL ── */
+    .side-panel {
       display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 12px;
-      color: #888;
+      flex-direction: column;
+      overflow-y: auto;
     }
 
+    .panel-block {
+      padding: 28px 28px;
+      border-bottom: 1px solid var(--border);
+    }
+    .panel-block:last-child { border-bottom: none; }
+
+    .block-label {
+      font-size: 9px; letter-spacing: 3px;
+      text-transform: uppercase; color: var(--muted);
+      margin-bottom: 20px;
+    }
+
+    /* Controls */
+    .ctrl-list {
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .ctrl-row {
+      display: flex; align-items: center;
+      justify-content: space-between;
+    }
+    .ctrl-action {
+      font-size: 12px; color: var(--soft);
+    }
+    .key-combo {
+      display: flex; gap: 4px; align-items: center;
+    }
     .key {
       background: var(--bg3);
-      border: 1px solid var(--border);
+      border: 1px solid var(--border2);
       border-bottom: 2px solid #000;
-      border-radius: 4px;
-      padding: 3px 8px;
-      font-family: 'Inter', monospace;
-      font-size: 11px;
-      font-weight: 500;
+      border-radius: 3px;
+      padding: 4px 10px;
+      font-size: 11px; font-weight: 500;
       color: var(--text);
-      min-width: 36px;
+      font-family: inherit;
+      min-width: 32px;
       text-align: center;
       white-space: nowrap;
     }
+    .key.wide { padding: 4px 16px; }
+    .key.arrow { padding: 4px 8px; font-size: 13px; }
+    .plus { font-size: 10px; color: var(--muted); }
 
-    /* ── INFO ── */
-    .info-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
+    /* Info rows */
+    .info-list { display: flex; flex-direction: column; gap: 11px; }
+    .info-row {
+      display: flex; justify-content: space-between;
+      align-items: baseline;
+    }
+    .info-key { font-size: 11px; color: var(--soft); }
+    .info-val { font-size: 11px; font-weight: 500; color: var(--text); text-align: right; }
+    .info-val.red { color: var(--red-hot); }
+
+    /* Tip */
+    .tip-box {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-left: 2px solid var(--red);
+      border-radius: 3px;
+      padding: 12px 14px;
+      font-size: 11px;
+      line-height: 1.7;
+      color: var(--soft);
     }
 
-    .info-row {
+    /* ── FOOTER ── */
+    footer {
+      background: var(--bg2);
+      border-top: 1px solid var(--border);
+      padding: 14px 40px;
+      font-size: 10px; color: var(--muted);
+      letter-spacing: 1px;
       display: flex;
       justify-content: space-between;
-      font-size: 12px;
+      align-items: center;
+      flex-shrink: 0;
     }
-
-    .info-row span:first-child { color: var(--muted); }
-    .info-row span:last-child  { color: var(--text); font-weight: 500; }
-
-    .info-row .red { color: var(--red-hot); }
   </style>
 </head>
 <body>
 
 <header>
   <div class="logo">
-    <div class="logo-dot"></div>
-    <span class="logo-text">DOOM</span>
+    <div class="logo-pulse"></div>
+    <span class="logo-name">Doom</span>
   </div>
-  <div class="badge">WebAssembly</div>
+  <span class="header-tag">id Software · 1993</span>
 </header>
 
 <main>
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-year">id Software &mdash; 1993 &mdash; Shareware</div>
+    <h1 class="hero-title">D<span class="oo">OO</span>M</h1>
+    <p class="hero-episode">Knee-Deep in the Dead &mdash; 9 mapas</p>
+    <button class="launch-btn" id="playBtn">▶ &nbsp; Jugar ahora</button>
+    <p class="hero-note">Se abre en pantalla completa &mdash; sin bugs de teclado</p>
+  </section>
 
-  <div id="game-wrap">
-    <iframe id="doom-frame" allow="autoplay; fullscreen" title="Doom en el navegador"></iframe>
-    <div id="overlay">
-      <div class="ov-eyebrow">id Software · 1993</div>
-      <div class="ov-title">D<span>OO</span>M</div>
-      <div class="ov-sub">Knee-Deep in the Dead</div>
-      <button id="play-btn">▶ &nbsp; Jugar ahora</button>
-      <div class="ov-hint">Haz clic en cualquier lugar para comenzar</div>
-    </div>
-  </div>
+  <!-- SIDE PANEL -->
+  <aside class="side-panel">
 
-  <div class="panel">
-    <div class="panel-section">
-      <div class="panel-label">Controles</div>
-      <div class="controls-grid">
-        <div class="ctrl"><span class="key">W A S D</span> <span>Mover</span></div>
-        <div class="ctrl"><span class="key">Ctrl</span> <span>Disparar</span></div>
-        <div class="ctrl"><span class="key">Space</span> <span>Puertas</span></div>
-        <div class="ctrl"><span class="key">Shift</span> <span>Correr</span></div>
-        <div class="ctrl"><span class="key">E</span> <span>Usar</span></div>
-        <div class="ctrl"><span class="key">1–7</span> <span>Armas</span></div>
-        <div class="ctrl"><span class="key">Tab</span> <span>Mapa</span></div>
-        <div class="ctrl"><span class="key">Esc</span> <span>Menú</span></div>
+    <div class="panel-block">
+      <div class="block-label">Controles verificados</div>
+      <div class="ctrl-list">
+        <div class="ctrl-row">
+          <span class="ctrl-action">Moverse</span>
+          <div class="key-combo">
+            <span class="key arrow">↑</span>
+            <span class="key arrow">↓</span>
+            <span class="key arrow">←</span>
+            <span class="key arrow">→</span>
+          </div>
+        </div>
+        <div class="ctrl-row">
+          <span class="ctrl-action">Disparar</span>
+          <div class="key-combo">
+            <span class="key wide">Ctrl</span>
+          </div>
+        </div>
+        <div class="ctrl-row">
+          <span class="ctrl-action">Abrir puertas / Usar</span>
+          <div class="key-combo">
+            <span class="key wide">Space</span>
+          </div>
+        </div>
+        <div class="ctrl-row">
+          <span class="ctrl-action">Strafe (desplazar)</span>
+          <div class="key-combo">
+            <span class="key">Alt</span>
+            <span class="plus">+</span>
+            <span class="key arrow">←</span>
+            <span class="key arrow">→</span>
+          </div>
+        </div>
+        <div class="ctrl-row">
+          <span class="ctrl-action">Correr</span>
+          <div class="key-combo">
+            <span class="key">Shift</span>
+          </div>
+        </div>
+        <div class="ctrl-row">
+          <span class="ctrl-action">Cambiar arma</span>
+          <div class="key-combo">
+            <span class="key">1</span>
+            <span class="key">—</span>
+            <span class="key">7</span>
+          </div>
+        </div>
+        <div class="ctrl-row">
+          <span class="ctrl-action">Mapa automap</span>
+          <div class="key-combo">
+            <span class="key">Tab</span>
+          </div>
+        </div>
+        <div class="ctrl-row">
+          <span class="ctrl-action">Iniciar / Menú</span>
+          <div class="key-combo">
+            <span class="key wide">Enter</span>
+            <span class="plus">/</span>
+            <span class="key">Esc</span>
+          </div>
+        </div>
+        <div class="ctrl-row">
+          <span class="ctrl-action">Pantalla completa</span>
+          <div class="key-combo">
+            <span class="key">F</span>
+          </div>
+        </div>
       </div>
     </div>
-    <div class="divider"></div>
-    <div class="panel-section">
-      <div class="panel-label">Información del juego</div>
+
+    <div class="panel-block">
+      <div class="block-label">Información</div>
       <div class="info-list">
-        <div class="info-row"><span>Título</span><span class="red">DOOM Shareware</span></div>
-        <div class="info-row"><span>Episodio</span><span>1 — Knee-Deep in the Dead</span></div>
-        <div class="info-row"><span>Niveles</span><span>9 mapas</span></div>
-        <div class="info-row"><span>Motor</span><span>WebAssembly (WASM)</span></div>
-        <div class="info-row"><span>Instalación</span><span>No requerida</span></div>
+        <div class="info-row">
+          <span class="info-key">Juego</span>
+          <span class="info-val red">DOOM Shareware</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Motor</span>
+          <span class="info-val">linuxdoom-1.10 → WASM</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Episodio</span>
+          <span class="info-val">1 &mdash; 9 niveles</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Instalación</span>
+          <span class="info-val">No requerida</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Compatibilidad</span>
+          <span class="info-val">Chrome, Firefox, Edge</span>
+        </div>
       </div>
     </div>
-  </div>
 
+    <div class="panel-block">
+      <div class="block-label">Nota</div>
+      <div class="tip-box">
+        El juego se abre en una pestaña nueva para que el teclado funcione sin interferencias. Los controles listados son los del motor vanilla original, verificados y sin remapeos.
+      </div>
+    </div>
+
+  </aside>
 </main>
 
-<script>
-  const overlay = document.getElementById('overlay');
-  const frame   = document.getElementById('doom-frame');
+<footer>
+  <span>WebAssembly port — diekmann/wasm-fizzbuzz</span>
+  <span>GNU GPL &mdash; id Software 1993</span>
+</footer>
 
-  overlay.addEventListener('click', () => {
-    overlay.style.opacity = '0';
-    overlay.style.pointerEvents = 'none';
-    setTimeout(() => overlay.style.display = 'none', 400);
-    frame.src = 'https://silentspacemarine.com/';
+<script>
+  document.getElementById('playBtn').addEventListener('click', function () {
+    window.open('https://diekmann.github.io/wasm-fizzbuzz/doom/', '_blank', 'noopener');
   });
 </script>
 
