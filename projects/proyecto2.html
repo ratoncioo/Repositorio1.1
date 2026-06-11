@@ -1,94 +1,168 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Proyecto 2</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DOOM — Jugar en el navegador</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
-        body {
-            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
-            font-family: 'Courier New', Courier, monospace;
-            color: #00ff41;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
+    body {
+      background: #111;
+      color: #ccc;
+      font-family: system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding: 24px;
+    }
 
-        .container {
-            max-width: 600px;
-            text-align: center;
-        }
+    h1 {
+      color: #e74c3c;
+      font-size: 48px;
+      letter-spacing: 10px;
+      font-weight: 700;
+    }
 
-        h1 {
-            font-size: 48px;
-            text-shadow: 0 0 20px #00ff41;
-            margin-bottom: 20px;
-            animation: glow 2s ease-in-out infinite;
-        }
+    .subtitle {
+      font-size: 13px;
+      color: #555;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
 
-        p {
-            font-size: 18px;
-            color: #008f11;
-            margin-bottom: 40px;
-            line-height: 1.6;
-        }
+    #doom-container {
+      position: relative;
+      width: 640px;
+      height: 400px;
+    }
 
-        .back-btn {
-            display: inline-block;
-            background: transparent;
-            border: 2px solid #00ff41;
-            color: #00ff41;
-            padding: 12px 30px;
-            font-size: 16px;
-            cursor: pointer;
-            font-family: 'Courier New', Courier, monospace;
-            font-weight: bold;
-            text-transform: uppercase;
-            transition: all 0.2s ease;
-            text-decoration: none;
-        }
+    #doom-frame {
+      width: 100%;
+      height: 100%;
+      border: none;
+      border-radius: 6px;
+      display: block;
+      background: #000;
+    }
 
-        .back-btn:hover {
-            background: #00ff41;
-            color: #000;
-            box-shadow: 0 0 20px rgba(0, 255, 65, 0.6);
-        }
+    #doom-overlay {
+      position: absolute;
+      inset: 0;
+      background: #000;
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      cursor: pointer;
+    }
 
-        @keyframes glow {
-            0%, 100% { text-shadow: 0 0 20px #00ff41; }
-            50% { text-shadow: 0 0 40px #00ff41, 0 0 60px #00ff41; }
-        }
+    #doom-overlay .big-title {
+      color: #e74c3c;
+      font-size: 56px;
+      font-weight: 700;
+      letter-spacing: 12px;
+    }
 
-        @media (max-width: 768px) {
-            h1 {
-                font-size: 36px;
-            }
+    #doom-overlay .tagline {
+      color: #555;
+      font-size: 13px;
+      letter-spacing: 2px;
+    }
 
-            p {
-                font-size: 16px;
-            }
-        }
-    </style>
+    #play-btn {
+      background: #e74c3c;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 14px 48px;
+      font-size: 20px;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    #play-btn:hover { background: #c0392b; }
+    #play-btn:active { transform: scale(0.97); }
+
+    .hint { color: #444; font-size: 12px; }
+
+    .controls {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .ctrl {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: #777;
+    }
+
+    .key {
+      background: #1e1e1e;
+      border: 1px solid #333;
+      border-radius: 4px;
+      padding: 3px 9px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #ccc;
+    }
+
+    .footer {
+      font-size: 11px;
+      color: #333;
+      text-align: center;
+      max-width: 640px;
+    }
+  </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>🎮 PROYECTO 2</h1>
-        <p>
-            Este es el Proyecto 2. Aquí irá el contenido de tu segundo proyecto.
-            Puedes agregar tu código, descripción y funcionalidades aquí.
-        </p>
-        <a href="../index.html" class="back-btn">◄ VOLVER</a>
+  <h1>DOOM</h1>
+  <p class="subtitle">1993 · id Software · Episodio 1 completo</p>
+
+  <div id="doom-container">
+    <iframe id="doom-frame" allow="autoplay; fullscreen" title="Doom en el navegador"></iframe>
+    <div id="doom-overlay">
+      <div class="big-title">DOOM</div>
+      <div class="tagline">Knee-Deep in the Dead</div>
+      <button id="play-btn">▶ JUGAR AHORA</button>
+      <div class="hint">Haz clic para cargar el juego</div>
     </div>
+  </div>
+
+  <div class="controls">
+    <div class="ctrl"><span class="key">WASD</span> Moverse</div>
+    <div class="ctrl"><span class="key">Ctrl</span> Disparar</div>
+    <div class="ctrl"><span class="key">Space</span> Abrir puertas</div>
+    <div class="ctrl"><span class="key">E</span> Usar</div>
+    <div class="ctrl"><span class="key">Shift</span> Correr</div>
+    <div class="ctrl"><span class="key">1–7</span> Cambiar arma</div>
+    <div class="ctrl"><span class="key">Tab</span> Mapa</div>
+    <div class="ctrl"><span class="key">Esc</span> Menú</div>
+  </div>
+
+  <p class="footer">
+    Doom shareware (Episodio 1) — corre en el navegador vía WebAssembly.<br>
+    No requiere instalación ni plugins. Abre este archivo en cualquier navegador moderno.
+  </p>
+
+  <script>
+    document.getElementById('doom-overlay').addEventListener('click', function () {
+      this.style.display = 'none';
+      document.getElementById('doom-frame').src = 'https://silentspacemarine.com/';
+    });
+  </script>
 
 </body>
 </html>
